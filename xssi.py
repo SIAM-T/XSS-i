@@ -13,7 +13,7 @@ def make_args():
     pars = ArgumentParser(
         description="My First subdomain finder",
         usage="%(prog)s -w wordlist.txt",
-        epilog="Example: python3 %(prog)s -w wordlist.txt -t 20",
+        epilog="Example: python3 %(prog)s -w wordlist.txt -t 20 -o output.txt",
     )
     pars.add_argument(
         "-w",
@@ -32,6 +32,15 @@ def make_args():
         type=int,
         help="Threads to make the process faster",
         default=10,
+    )
+    pars.add_argument(
+        "-o",
+        "--output",
+        dest="output",
+        metavar="",
+        type=FileType("w"),
+        help="File to save vulnerable URLs",
+        required=True
     )
     pars.add_argument(
         "-V",
@@ -73,6 +82,9 @@ def scan_subdomain(total_words):
                 print(f"{Fore.RED}[Vulnerable]    {Style.RESET_ALL}{urls}")
                 if urls not in subdomain:
                     subdomain.append(urls)
+                    if args.output:  # Write to output file if specified
+                        with lock:
+                            args.output.write(urls + "\n")
             else:
                 print(f"{Fore.GREEN}[Not Vulnerable] {Style.RESET_ALL}{urls}")
         except exceptions.RequestException:
@@ -96,17 +108,17 @@ def print_banner():
 ╚█████╗░██║███████║██╔████╔██║        █████═╝░██║██╔██╗██║██║░░██╗░
 ░╚═══██╗██║██╔══██║██║╚██╔╝██║        ██╔═██╗░██║██║╚████║██║░░╚██╗
 ██████╔╝██║██║░░██║██║░╚═╝░██║        ██║░╚██╗██║██║░╚███║╚██████╔╝
-╚═════╝░╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝        ╚═╝░░╚═╝╚═╝╚═╝░░╚══╝░╚═════╝░
+╚═════╝░╚═╝╚═╝░░╚═╝╚═╝░░░░░╚═╝        ╚═╝░░╚═╝╚═╝░░╚══╝░╚═════╝░
     """
     print(Fore.YELLOW + banner + Style.RESET_ALL)
 
 if __name__ == "__main__":
     print_banner()  # Print the banner when the program starts
     start = time()
-    argument = make_args()
-    make_word(argument.wordlist)
+    args = make_args()
+    make_word(args.wordlist)
     total_words = words_queue.qsize()
-    make_thread(total_words, argument.threads)
+    make_thread(total_words, args.threads)
     if subdomain:
         print("\nvuln URL(s) found:")
         for i in subdomain:
@@ -115,3 +127,4 @@ if __name__ == "__main__":
         print("\nNo vulnerable URLs found.")
     end_time = time()
     print(f"\nTime: {round(end_time - start, 2)} seconds")
+
